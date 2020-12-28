@@ -1,19 +1,19 @@
 package main
 
 import (
-  "os"
-  "fmt"
-  "io/ioutil"
-  "io"
-  "net/http"
-  "path/filepath"
-  "archive/zip"
-  "strings"
+	"archive/zip"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func CreateFile(name string) {
-        d := []byte("")
-        ioutil.WriteFile(name, d, 0644)
+	d := []byte("")
+	ioutil.WriteFile(name, d, 0644)
 }
 func DownloadFile(filepath string, url string) error {
 
@@ -37,81 +37,76 @@ func DownloadFile(filepath string, url string) error {
 }
 func Unzip(src string, dest string) ([]string, error) {
 
-    var filenames []string
+	var filenames []string
 
-    r, err := zip.OpenReader(src)
-    if err != nil {
-        return filenames, err
-    }
-    defer r.Close()
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return filenames, err
+	}
+	defer r.Close()
 
-    for _, f := range r.File {
+	for _, f := range r.File {
 
-        // Store filename/path for returning and using later on
-        fpath := filepath.Join(dest, f.Name)
+		fpath := filepath.Join(dest, f.Name)
 
-        // Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
-        if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
-            return filenames, fmt.Errorf("%s: illegal file path", fpath)
-        }
+		if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return filenames, fmt.Errorf("%s: illegal file path", fpath)
+		}
 
-        filenames = append(filenames, fpath)
+		filenames = append(filenames, fpath)
 
-        if f.FileInfo().IsDir() {
-            // Make Folder
-            os.MkdirAll(fpath, os.ModePerm)
-            continue
-        }
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
 
-        // Make File
-        if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-            return filenames, err
-        }
+		if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+			return filenames, err
+		}
 
-        outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-        if err != nil {
-            return filenames, err
-        }
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return filenames, err
+		}
 
-        rc, err := f.Open()
-        if err != nil {
-            return filenames, err
-        }
+		rc, err := f.Open()
+		if err != nil {
+			return filenames, err
+		}
 
-        _, err = io.Copy(outFile, rc)
+		_, err = io.Copy(outFile, rc)
 
-        // Close the file without defer to close before next iteration of loop
-        outFile.Close()
-        rc.Close()
+		outFile.Close()
+		rc.Close()
 
-        if err != nil {
-            return filenames, err
-        }
-    }
-    return filenames, nil
+		if err != nil {
+			return filenames, err
+		}
+	}
+	return filenames, nil
 }
 func main() {
-  args := os.Args[1:]
-  if args[0] == "init" {
-    fmt.Println("Chose The Language That The Project Is In")
-    fmt.Println("1) Python")
-    fmt.Println("2) TypeScript")
-    var lang string
-    fmt.Scanln(&lang)
-    if lang == "1" {
-      os.Mkdir("pow_pack",0755)
-      CreateFile(".powp")
-    }else if lang == "2" {
-      os.Mkdir("pow_pack",0755)
-      CreateFile(".powt")
-    }else{
-      fmt.Println("invaild")
-      os.Exit(1)
-    }
-  }
-  if args[0] == "install" {
-    DownloadFile("download.zip",args[1])
-    os.Mkdir("pow_pack/" + args[2],0755)
-    Unzip("download.zip","pow_pack/" + args[2])
-  }
+	args := os.Args[1:]
+	if args[0] == "init" {
+		fmt.Println("Chose The Language That The Project Is In")
+		fmt.Println("1) Python")
+		fmt.Println("2) TypeScript")
+		var lang string
+		fmt.Scanln(&lang)
+		if lang == "1" {
+			os.Mkdir("pow_pack", 0755)
+			CreateFile(".powp")
+		} else if lang == "2" {
+			os.Mkdir("pow_pack", 0755)
+			CreateFile(".powt")
+		} else {
+			fmt.Println("invaild")
+			os.Exit(1)
+		}
+	}
+	if args[0] == "install" {
+		DownloadFile("download.zip", args[1])
+		os.Mkdir("pow_pack/"+args[2], 0755)
+		Unzip("download.zip", "pow_pack/"+args[2])
+	}
 }
